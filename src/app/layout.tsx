@@ -7,7 +7,7 @@ const poppins = Poppins({
 export default function RootLayout({children}: Readonly<{children: React.ReactNode;}>) {
   return (
     <html lang="en" className={poppins.className}>
-      <body className="h-screen bg-gradient-to-r from-[#A7C7E7] via-[#F4B5B1] to-[#6E8BB8]">
+      <body className="h-screen bg-[#1A1A1A]">
         {children}
       </body>
     </html>

@@ -1,10 +1,18 @@
 import React from 'react'
 import { useEffect, useState, useRef } from 'react';
+import { useSocket } from '../hooks/useSocket';
 
-export const CameraStream = () => {
+interface CameraStreamProps {
+  cameraActivated: boolean
+}
+
+export const CameraStream: React.FC<CameraStreamProps> = ({cameraActivated}) => {
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const {sendCameraFrame, userMood, disconnectClient} = useSocket();
     useEffect(() => {
+      if(cameraActivated){
         const startCamera = async () => {
           try{
             const stream = await navigator.mediaDevices.getUserMedia({video: true});
@@ -16,11 +24,11 @@ export const CameraStream = () => {
               const reader = new FileReader();
               reader.onloadend = () => {
                 const frameData = reader.result as string;
-                console.log(frameData)
+                sendCameraFrame(frameData)
               }
     
               reader.readAsDataURL(photo)
-              setTimeout(sendFrame, 1000)
+              setTimeout(sendFrame, 10000)
             }
             sendFrame()
           } catch (error){
@@ -28,7 +36,13 @@ export const CameraStream = () => {
           }
         }
         startCamera()
-    }, [])
+      } else {
+        disconnectClient();
+        if(videoRef.current){
+          videoRef.current = null
+        }
+      }
+    }, [cameraActivated])
 
     useEffect(() => {
         if (videoRef.current && mediaStream) {

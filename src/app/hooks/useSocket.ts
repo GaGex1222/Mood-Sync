@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import { SongsData, EmotionChangeData } from "@/src/interfaces/data.interfaces";
 import io from "socket.io-client";
 
-export function useSocket(){
+
+export function useSocket(setEmotion: (emotion: string) => void, songCount: number, setSongs: (songs: SongsData) => void){
+
+
     const socketRef = useRef<SocketIOClient.Socket | null>(null);
-    const [userMood, setUserMood] = useState<String>();
-    const [message, setMessage] = useState()
     useEffect(() => {
         socketRef.current = io('http://localhost:5000');
         
-        socketRef.current.on("moodChange", (mood: string) => {
-            console.log("Current user mood: ", mood)
-            setUserMood(mood)
+        socketRef.current.on("emotion_change", (data: EmotionChangeData) => {
+            setEmotion(data['emotion'])
+            setSongs(data["songs"])
         })
 
         return () => {
@@ -20,7 +22,11 @@ export function useSocket(){
 
     const sendCameraFrame = (base64String: string) => {
         if(socketRef.current){
-            socketRef.current.emit('image_frame', base64String)
+            const data = {
+                "base64_string": base64String,
+                "song_count": songCount
+            }
+            socketRef.current.emit('image_frame', data)
         }
     }
 
@@ -28,5 +34,5 @@ export function useSocket(){
         socketRef.current?.disconnect()
     }
 
-    return {sendCameraFrame, userMood, disconnectClient}
+    return {sendCameraFrame, disconnectClient}
 }

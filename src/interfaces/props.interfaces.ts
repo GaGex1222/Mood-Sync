@@ -16,3 +16,8 @@ export interface SongCountSliderProps {
     setSongCount: (count: number) => void
     songCount: number
 }
+
+export interface CreatePlaylistButtonProps {
+    onClick: () => void
+    text: string 
+}

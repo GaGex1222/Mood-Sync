@@ -27,8 +27,8 @@ emotion_genres = {
 }
 spotify_client_id = os.getenv("AUTH_SPOTIFY_ID")
 spotify_client_secret = os.getenv("AUTH_SPOTIFY_SECRET")
-print(spotify_client_id)
-print(spotify_client_secret)
+emotion = None
+allowed_emotions = ["fear", "happy", "sad", "angry", "neutral"]
 spotify_access_token = ""
 spotify_token_expired_time = 3600
 expires_at = None
@@ -58,30 +58,19 @@ def get_spotify_access_token():
 
     expires_at = time.time() + spotify_token_expired_time
 
-    # Create the client credentials string
     client_credentials = f"{spotify_client_id}:{spotify_client_secret}"
 
-    # Encode the credentials as bytes and then Base64 encode them
     client_credentials_base64 = base64.b64encode(client_credentials.encode()).decode()  # Default is UTF-8
 
-    # Add the Base64-encoded string to the Authorization header
     headers = {
         "Authorization": f"Basic {client_credentials_base64}",
         "Content-Type": "application/x-www-form-urlencoded"
     }
-
-    # Request body
     data = {"grant_type": "client_credentials"}
 
-    # Make the POST request
     response = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=data)
-    print("Request Headers:", headers)
-    print("Request Data:", data)
-    print("Response Status Code:", response.status_code)
-    print("Response Content:", response.text)
     response.raise_for_status()
 
-    # Parse and store the access token
     spotify_access_token = response.json()["access_token"]
 
 def get_emotion_spotify_playlist(emotion, song_count):
@@ -99,9 +88,11 @@ def get_emotion_spotify_playlist(emotion, song_count):
     response.raise_for_status()
     songs_dict = {}
     for item in response.json()['tracks']['items']:
+        print(item["uri"])
         spotify_song_name = item['name']
         spotify_image_url = item['album']['images'][0]['url']
-        songs_dict[spotify_song_name] = {"image": spotify_image_url}
+        spotify_track_url = item['uri']
+        songs_dict[spotify_song_name] = {"image": spotify_image_url, "url": spotify_track_url}
     return songs_dict
 
 
@@ -122,21 +113,25 @@ def handle_disconnect():
 
 @socketio.on("image_frame")
 def image_frame_handler(data):
+    global emotion
     base64_string = data['base64_string']
     song_count = data['song_count']
     img = stringToImage(base64_string)
     coloredImage = toRGB(img)
-    emotion = DeepFace.analyze(coloredImage, ['emotion'])[0]['dominant_emotion']
-    print(emotion)
-    if(emotion):
-        songs = get_emotion_spotify_playlist(emotion, song_count)
-        data_for_client = {
-            "songs": songs,
-            "emotion": emotion
-        }
-        socketio.emit("emotion_change", data_for_client)
-    else:
-        print("Could not find face")
+    new_emotion = DeepFace.analyze(coloredImage, ['emotion'])[0]['dominant_emotion']
+    print(new_emotion)
+    if(emotion != new_emotion and new_emotion in allowed_emotions):
+        print("new emotion: ", new_emotion)
+        emotion = new_emotion
+        songs = get_emotion_spotify_playlist(new_emotion, song_count)
+        print(len(songs))
+        if(songs):
+            data_for_client = {
+                "songs": songs,
+                "emotion": emotion
+            }
+            socketio.emit("emotion_change", data_for_client)
+    
 
 
 

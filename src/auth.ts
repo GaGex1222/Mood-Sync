@@ -48,7 +48,7 @@ const getRefreshToken = async (token: JWT) => {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [Spotify({
-    authorization: "https://accounts.spotify.com/authorize?scope=playlist-modify-public"
+    authorization: "https://accounts.spotify.com/authorize?scope=playlist-modify-public playlist-modify-private user-read-private user-read-email"
   })],
 
   callbacks: {

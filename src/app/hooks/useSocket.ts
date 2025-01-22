@@ -12,9 +12,14 @@ export function useSocket(setEmotion: (emotion: string) => void, songCount: numb
             socketRef.current = io('http://localhost:5000');
             
             if(socketRef.current){
+
                 socketRef.current.on("emotion_change", (data: EmotionChangeData) => {
                     setEmotion(data['emotion'])
                     setSongs(data["songs"])
+                })
+
+                socketRef.current.on("create_playlist", (playlistUrl: string) => {
+
                 })
             }
 

@@ -66,7 +66,7 @@ export default function Home() {
             isProcessing = false;
             frameTimeoutRef.current = setTimeout(sendFrame, 1000)
           }
-          sendFrame()
+          setTimeout(sendFrame, 1000)
         } catch (error){
           console.error('Error accessing webcam', error)
         }

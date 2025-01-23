@@ -26,24 +26,16 @@ emotion_genres = {
     "angry": ['Hard Rock', 'Metal', 'Punk', 'Industrial', 'Grunge'],
     "fear": ['Dark Ambient', 'Horror Soundtracks', 'Industrial', 'Post-Punk', 'Noise']
 }
-spotify_client_id = os.getenv("AUTH_SPOTIFY_ID")
-spotify_client_secret = os.getenv("AUTH_SPOTIFY_SECRET")
+
 allowed_emotions = ["fear", "happy", "sad", "angry", "neutral"]
 spotify_token_expired_time = 3600
 
 
-def is_spotify_token_expired():
-    print(session['access_token'], "HERE")
-    print(session['emotion'])
-    if not session['token_expired_at'] or time.time() > session['token_expired_at']:
-        print("TOKEN IS EXPIRED GETTING NEW ONE")
-        get_spotify_access_token()
 
-def get_spotify_user_id():
-    is_spotify_token_expired()
+def get_spotify_user_id(access_token):
     url = "https://api.spotify.com/v1/me"
     headers = {
-        'Authorization': f'Bearer {session['access_token']}'
+        'Authorization': f'Bearer {access_token}'
     }
 
     response = requests.get(url, headers=headers)
@@ -53,46 +45,52 @@ def get_spotify_user_id():
     session['spotify_user_id'] = user_data['id']
     session['spotify_username'] = user_data['display_name']
 
-def create_empty_playlist(playlist_name, playlist_description):
-    is_spotify_token_expired()
+def add_tracks_to_playlist(track_uris, playlist_id, access_token, playlist_url):
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+
     request_body = {
-        "name": playlist_name,
-        "description": playlist_description,
-        "public": True
+        "uris": track_uris
     }
+
     headers = {
-        "Authorization": f"Bearer {session['access_token']}",
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
 
-    response = requests.post("https://api.spotify.com/v1/users/{user_id}/playlists", headers=headers, json=request_body)
-
-
-
-def get_spotify_access_token():
-
-    session['token_expired_at'] = time.time() + spotify_token_expired_time
-
-    client_credentials = f"{spotify_client_id}:{spotify_client_secret}"
-
-    client_credentials_base64 = base64.b64encode(client_credentials.encode()).decode()
-
-    headers = {
-        "Authorization": f"Basic {client_credentials_base64}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    data = {"grant_type": "client_credentials"}
-    print("Now doing access token req")
-    response = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=data)
+    response = requests.post(url, headers=headers, json=request_body)
     response.raise_for_status()
 
-    session['access_token'] = response.json()['access_token']
+    socketio.emit("playlist_url", playlist_url)
 
-def get_emotion_tracks(emotion, song_count):
-    is_spotify_token_expired()
-    random_genre = random.choice(emotion_genres[emotion])
+def create_empty_playlist(track_uris, access_token):
+    request_body = {
+        "name": f"{session['spotify_username']} {session['emotion']} playlist!",
+        "description": f"Playlist that was created for the ${session['emotion']} emotion",
+        "public": True
+    }
     headers = {
-        'Authorization': f'Bearer {session['access_token']}'
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    response = requests.post(f"https://api.spotify.com/v1/users/{session['spotify_user_id']}/playlists", headers=headers, json=request_body)
+    response.raise_for_status()
+
+    data = response.json()
+    playlist_id = data['id']
+    playlist_url = data['external_urls']['spotify']
+    add_tracks_to_playlist(track_uris, playlist_id, access_token, playlist_url)
+    
+
+
+
+
+
+def get_emotion_tracks(emotion, song_count, access_token):
+    random_genre = random.choice(emotion_genres[emotion])
+
+    headers = {
+        'Authorization': f'Bearer {access_token}'
     }
     params = {
         'q': f'genre:"{random_genre}"',
@@ -120,8 +118,6 @@ def toRGB(image):
 @socketio.on("connect")
 def handle_connect():
     session['emotion'] = None
-    session['access_token'] = None
-    session['token_expired_at'] = None
     session['spotify_user_id'] = None
     session['spotify_username'] = None
     print("Client connected")
@@ -133,8 +129,11 @@ def handle_disconnect():
 
 @socketio.on("create_playlist")
 def create_user_playlist(data):
+    access_token = data['access_token']
     if not session['spotify_user_id']:
-        get_spotify_user_id()
+         get_spotify_user_id(access_token)
+    tracks_uris = data['songs']
+    create_empty_playlist(tracks_uris, access_token)
     
     
 
@@ -142,27 +141,25 @@ def create_user_playlist(data):
 
 @socketio.on("image_frame")
 def image_frame_handler(data):
-    emotion = session['emotion']
     base64_string = data['base64_string']
-    song_count = data['song_count']
-
     img = stringToImage(base64_string)
     coloredImage = toRGB(img)
     new_emotion = DeepFace.analyze(coloredImage, ['emotion'])[0]['dominant_emotion']
 
-    if(emotion != new_emotion and new_emotion in allowed_emotions):
-        emotion = new_emotion
-        songs = get_emotion_tracks(emotion, song_count)
+    if(session['emotion'] != new_emotion and new_emotion in allowed_emotions):
+        session['emotion'] = new_emotion
+        print(session['emotion'])
+        print(new_emotion)
+        song_count = data['song_count']
+        user_access_token = data['access_token']
+        songs = get_emotion_tracks(session['emotion'], song_count, user_access_token)
+
         if(songs):
             data_for_client = {
                 "songs": songs,
-                "emotion": emotion
+                "emotion": session['emotion']
             }
             socketio.emit("emotion_change", data_for_client)
     
-
-
-
-
 
 socketio.run(app, "localhost", 5000)

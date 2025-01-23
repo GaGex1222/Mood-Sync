@@ -1,3 +1,4 @@
+import { Session } from "next-auth"
 import { SongsData } from "./data.interfaces"
 
 export interface CameraStreamProps {
@@ -10,6 +11,7 @@ export interface CameraStreamProps {
 export interface ButtonProps {
     setCameraActivated: (prev: boolean) => void
     cameraActivated: boolean
+    session: Session | null
 }
 
 export interface SongCountSliderProps {
@@ -20,4 +22,8 @@ export interface SongCountSliderProps {
 export interface CreatePlaylistButtonProps {
     onClick: () => void
     text: string 
+}
+
+export interface LogInButtonProps {
+    session: Session | null
 }

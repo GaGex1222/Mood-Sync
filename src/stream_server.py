@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_socketio import SocketIO
 from flask import session
 import io
@@ -45,7 +45,7 @@ def get_spotify_user_id(access_token):
     session['spotify_user_id'] = user_data['id']
     session['spotify_username'] = user_data['display_name']
 
-def add_tracks_to_playlist(track_uris, playlist_id, access_token, playlist_url):
+def add_tracks_to_playlist(track_uris, playlist_id, access_token):
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
 
     request_body = {
@@ -60,12 +60,13 @@ def add_tracks_to_playlist(track_uris, playlist_id, access_token, playlist_url):
     response = requests.post(url, headers=headers, json=request_body)
     response.raise_for_status()
 
-    socketio.emit("playlist_url", playlist_url)
 
-def create_empty_playlist(track_uris, access_token):
+
+
+def create_empty_playlist(track_uris, access_token, session_id):
     request_body = {
         "name": f"{session['spotify_username']} {session['emotion']} playlist!",
-        "description": f"Playlist that was created for the ${session['emotion']} emotion",
+        "description": f"Playlist that was created for {session['spotify_username']} when he is feeling {session['emotion']}",
         "public": True
     }
     headers = {
@@ -80,6 +81,11 @@ def create_empty_playlist(track_uris, access_token):
     playlist_id = data['id']
     playlist_url = data['external_urls']['spotify']
     add_tracks_to_playlist(track_uris, playlist_id, access_token, playlist_url)
+    data = {
+        "playlist_url": playlist_url,
+        "session_id": session_id
+    }
+    socketio.emit('playlist_url', data)
     
 
 
@@ -120,6 +126,7 @@ def handle_connect():
     session['emotion'] = None
     session['spotify_user_id'] = None
     session['spotify_username'] = None
+    print(request.sid)
     print("Client connected")
 
 @socketio.on("disconnect")
@@ -133,6 +140,7 @@ def create_user_playlist(data):
     if not session['spotify_user_id']:
          get_spotify_user_id(access_token)
     tracks_uris = data['songs']
+    session_id = data['session_id']
     create_empty_playlist(tracks_uris, access_token)
     
     
@@ -142,6 +150,7 @@ def create_user_playlist(data):
 @socketio.on("image_frame")
 def image_frame_handler(data):
     base64_string = data['base64_string']
+    session_id = data['session_id']
     img = stringToImage(base64_string)
     coloredImage = toRGB(img)
     new_emotion = DeepFace.analyze(coloredImage, ['emotion'])[0]['dominant_emotion']
@@ -157,8 +166,10 @@ def image_frame_handler(data):
         if(songs):
             data_for_client = {
                 "songs": songs,
-                "emotion": session['emotion']
+                "emotion": session['emotion'],
+                "session_id": session_id
             }
+            print(data_for_client)
             socketio.emit("emotion_change", data_for_client)
     
 

@@ -10,7 +10,13 @@ export interface SongsData {
 
 export interface EmotionChangeData {
     emotion: string,
-    songs: SongsData
+    songs: SongsData,
+    session_id: string
+}
+
+export interface PlaylistUrlChange {
+  playlistUrl: string
+  session_id: string
 }
 
 declare module 'next-auth' {

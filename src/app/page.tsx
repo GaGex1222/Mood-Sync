@@ -1,196 +1,59 @@
 'use client'
-import { useEffect, useRef, useState } from "react";
-import { Search, Ban, Smile } from "lucide-react";
-import { emotionPhrases } from "../utils/emotionPhrases";
-import {SongCountSlider} from "./components/SongCountSlider";
-import { MoodButton } from "./components/MoodButton";
-import { SongsData } from "../interfaces/data.interfaces";
-import { AudioWaveform, MoveRight } from "lucide-react";
-import { useSocket } from "./hooks/useSocket";
-import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import LogInButton from "./components/LogInButton";
+import { Smile, Music, ArrowRight } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { generateString } from "../utils/helperFunctions";
 
-export default function Home() {
-  const [cameraActivated, setCameraActivated] = useState<boolean>(false);
-  const [userEmotion, setUserEmotion] = useState<string | null>(null);
-  const [songsData, SetSongsData] = useState<SongsData>({});
-  const [songCount, setSongCount] = useState(10);
+export default function LandingPage() {
+  const router = useRouter();
   const {data: session} = useSession();
-  const [playlistUrl, setPlaylistUrl] = useState<string | null>(null);
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const {sendCameraFrame, createUserPlaylist} = useSocket(setUserEmotion, songCount, SetSongsData, cameraActivated, setPlaylistUrl);
-  const frameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    console.log(playlistUrl)
-  }, [playlistUrl])
-  useEffect(() => {
-    console.log(session?.accessToken)
-    let isProcessing = false;
 
-    const cleanup = () => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = null; 
-      }
-      if (frameTimeoutRef.current) {
-        clearTimeout(frameTimeoutRef.current); 
-        frameTimeoutRef.current = null;
-      }
-    };
+  const handleGetStarted = () => {
+    const randomSocketId = generateString(10)
+    router.push(`/home/${randomSocketId}`); 
+  };
 
-    if(!cameraActivated){
-      cleanup()
-      return;
-    }
-
-    if(cameraActivated){
-      const startCamera = async () => {
-        try{
-          const stream = await navigator.mediaDevices.getUserMedia({video: true});
-          setMediaStream(stream)
-          const videoTrack = stream.getVideoTracks()[0];
-          const imageCapture = new ImageCapture(videoTrack)
-          const sendFrame = async () => {
-            if(!cameraActivated || isProcessing) return;
-            isProcessing = true
-            const photo = await imageCapture.takePhoto();
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const frameData = reader.result as string;
-              if(session?.accessToken){
-                sendCameraFrame(frameData, session?.accessToken)
-              }
-              console.log("Now sent camera")
-            }
-  
-            reader.readAsDataURL(photo)
-            isProcessing = false;
-            frameTimeoutRef.current = setTimeout(sendFrame, 1000)
-          }
-          setTimeout(sendFrame, 1000)
-        } catch (error){
-          console.error('Error accessing webcam', error)
-        }
-      }
-      startCamera()
-    }
-  }, [cameraActivated])
-
-  useEffect(() => {
-      if (videoRef.current && mediaStream) {
-          videoRef.current.srcObject = mediaStream;
-          videoRef.current.play();
-      }
-  }, [mediaStream]);
-
-  const handleCreatePlaylist = () => {
-    if(!session){
-      signIn('spotify')
-    }
-
-    if(session?.accessToken){
-      const tracksUrls: string[] = Object.values(songsData).map(obj => obj.url)
-      createUserPlaylist(session.accessToken, tracksUrls)
-    }
-
-  }
-
-  const handleOpenPlaylist = () => {
-    if(playlistUrl){
-      window.open(playlistUrl)
-    }
-  }
-
-
-
-  
   return (
-    <>
-      <div className="min-h-screen flex flex-col items-center bg-cover bg-center relative overflow-y-auto px-4">
-        <div className="absolute top-0 left-0 flex items-center">
-            <LogInButton session={session}/>
-        </div>
-        <div className="text-center text-[#00B786] p-10 rounded-lg w-full md:w-2/3 lg:w-1/2 xl:w-1/3 mx-auto my-5">
-          <h1 className="text-4xl font-bold mb-4">Welcome to MoodSync</h1>
-          <p className="text-xl">Your emotion-driven music player.</p>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-teal-700 to-green-400 text-white relative overflow-hidden px-4">
+      <div className="absolute inset-0 bg-teal-900 opacity-30 pointer-events-none"></div>
 
-        {cameraActivated && (
-          <>
-            <div className="border-2 border-[#00B786]">
-                {cameraActivated && !videoRef.current ? (
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-                    <div className="animate-spin rounded-full border-t-2 border-[#00B786] w-32 h-32 border-solid"></div>
-                  </div>
-                ): ('')}
-                <video ref={videoRef} className='scale-x scale-x-[-1]' autoPlay={true} />
-            </div>
-          </>
-        )}
+      <div className="absolute top-4 left-4">
+        <LogInButton session={session} />
+      </div>
 
-        <div className="mt-4">
-          <MoodButton
-            cameraActivated={cameraActivated}
-            session={session}
-            setCameraActivated={setCameraActivated}
-          />
-        </div>
+      <div className="text-center relative z-10">
+        <h1 className="text-5xl font-bold mb-6 drop-shadow-lg">
+          Welcome to <span className="text-yellow-300">MoodSync</span>
+        </h1>
+        <p className="text-xl mb-8 max-w-2xl mx-auto drop-shadow-md">
+          Discover your mood through music. Analyze your emotions and let MoodSync
+          craft the perfect Spotify playlist just for you.
+        </p>
+        <div className="flex justify-center space-x-4">
+          <button
+            className="bg-white text-teal-700 px-6 py-3 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition-transform duration-300 hover:-translate-y-1 flex items-center space-x-2"
+            onClick={handleGetStarted}
+          >
+            <Smile className="w-5 h-5" />
+            <span>Get Started</span>
+          </button>
 
-        {!cameraActivated && (
-          <div className="mt-4">
-            <SongCountSlider songCount={songCount} setSongCount={setSongCount} />
-          </div>
-        )}
-
-        {Object.keys(songsData).length > 0 && userEmotion && (
-          <div className="fixed top-1/2 right-5 transform -translate-y-1/2 w-full max-w-sm lg:max-w-md transition-transform duration-1000 ease-out opacity-0 animate-fadeIn z-20">
-            <div className="bg-[#00B786] p-6 rounded-lg shadow-lg">
-              <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                {emotionPhrases[userEmotion]}
-              </h2>
-
-              <div className="space-y-4 overflow-y-auto max-h-[24rem] no-scrollbar">
-                {Object.keys(songsData).map((song, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-4 bg-[#019F6C] rounded-md p-2 hover:shadow-md transition-shadow"
-                  >
-                    <img
-                      src={songsData[song]["image"]}
-                      alt={`Cover art for ${song}`}
-                      className="w-12 h-12 object-cover rounded-md"
-                    />
-                    <p className="text-white font-medium truncate">{song}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex justify-center">
-                {playlistUrl ? (
-                  <button onClick={handleOpenPlaylist} className="flex items-center px-4 duration-300 py-2 bg-white text-[#00B786] font-semibold rounded-lg shadow-md hover:shadow-lg transition active:translate-y-0 hover:-translate-y-1 hover:bg-gray-200">
-                    Open spotify playlist
-                    <span className="ml-2">
-                      <MoveRight className="w-5 h-5" />
-                    </span>
-                  </button>
-                ): (
-                  <button onClick={handleCreatePlaylist} className="flex items-center px-4 duration-300 py-2 bg-white text-[#00B786] font-semibold rounded-lg shadow-md hover:shadow-lg transition active:translate-y-0 hover:-translate-y-1 hover:bg-gray-200">
-                    Create spotify playlist
-                    <span className="ml-2">
-                      <AudioWaveform className="w-5 h-5" />
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="absolute bottom-5 w-full text-center mt-10">
-          <small className="text-gray-500">Mood analysis may not always be perfect.</small>
+          <button
+            className="bg-transparent border-2 border-white text-white px-6 py-3 font-bold rounded-lg shadow-lg hover:bg-white hover:text-teal-700 transition-transform duration-300 hover:-translate-y-1 flex items-center space-x-2"
+            onClick={() => router.push("/about")}
+          >
+            <Music className="w-5 h-5" />
+            <span>Learn More</span>
+          </button>
         </div>
       </div>
-    </>
+
+      <div className="absolute bottom-10 w-full text-center">
+        <p className="text-sm text-gray-200">
+          Experience personalized music like never before. Powered by AI and Spotify.
+        </p>
+      </div>
+    </div>
   );
 }

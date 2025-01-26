@@ -12,6 +12,8 @@ export interface ButtonProps {
     setCameraActivated: (prev: boolean) => void
     cameraActivated: boolean
     session: Session | null
+    playlistUrl: string | null
+    handleMoodRetry: () => void
 }
 
 export interface SongCountSliderProps {

@@ -1,6 +1,5 @@
 import { JWT } from "next-auth/jwt";
-import NextAuth, { DefaultSession } from 'next-auth'
-import { Session } from "next-auth";
+import NextAuth from 'next-auth'
 import Spotify from "next-auth/providers/spotify";
  
 const getRefreshToken = async (token: JWT) => {

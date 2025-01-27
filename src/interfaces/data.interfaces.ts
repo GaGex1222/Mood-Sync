@@ -15,7 +15,7 @@ export interface EmotionChangeData {
 }
 
 export interface PlaylistUrlChange {
-  playlistUrl: string
+  playlist_url: string
   session_id: string
 }
 

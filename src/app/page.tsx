@@ -9,10 +9,6 @@ export default function LandingPage() {
   const router = useRouter();
   const {data: session} = useSession();
 
-  const handleGetStarted = () => {
-    const randomSocketId = generateString(10)
-    router.push(`/home/${randomSocketId}`); 
-  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-teal-700 to-green-400 text-white relative overflow-hidden px-4">
@@ -33,7 +29,7 @@ export default function LandingPage() {
         <div className="flex justify-center space-x-4">
           <button
             className="bg-white text-teal-700 px-6 py-3 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition-transform duration-300 hover:-translate-y-1 flex items-center space-x-2"
-            onClick={handleGetStarted}
+            onClick={() => router.push("/stream")}
           >
             <Smile className="w-5 h-5" />
             <span>Get Started</span>

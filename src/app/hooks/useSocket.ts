@@ -25,8 +25,10 @@ export function useSocket(setEmotion: (emotion: string) => void, songCount: numb
 
                 socketRef.current.on("playlist_url", (data: PlaylistUrlChange) => {
                     const currentSessionId = sessionStorage.getItem("sessionId");
+                    console.log("current", currentSessionId)
+                    console.log('res', data)
                     if(data.session_id === currentSessionId){
-                        setPlaylistUrl(data.playlistUrl)
+                        setPlaylistUrl(data['playlist_url'])
                     }
                 })
             }

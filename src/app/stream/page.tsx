@@ -29,8 +29,8 @@ export default function Home() {
   const frameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setPlaylistUrl(playlistUrl);
     setButtonLoading(false);
+    console.log(playlistUrl)
   }, [playlistUrl]);
 
   useEffect(() => {
@@ -58,6 +58,7 @@ export default function Home() {
     }
 
     if (cameraActivated) {
+
       const startCamera = async () => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -68,6 +69,8 @@ export default function Home() {
           const imageCapture = new ImageCapture(videoTrack);
           const sendFrame = async () => {
             if (!cameraActivated || isProcessing) return;
+            console.log("camera", cameraActivated)
+            console.log("proccess", isProcessing)
             isProcessing = true;
             const photo = await imageCapture.takePhoto();
             const reader = new FileReader();
@@ -77,13 +80,13 @@ export default function Home() {
                 sendCameraFrame(frameData, session?.accessToken);
               }
               console.log("Now sent camera");
-              console.log(songsData)
             };
 
             reader.readAsDataURL(photo);
             isProcessing = false;
             frameTimeoutRef.current = setTimeout(sendFrame, 1000);
           };
+
           setTimeout(sendFrame, 1000);
         } catch (error) {
           console.error("Error accessing webcam", error);
@@ -91,6 +94,7 @@ export default function Home() {
       };
       startCamera();
     }
+    return cleanup
   }, [cameraActivated]);
 
   useEffect(() => {
@@ -135,8 +139,8 @@ export default function Home() {
         </div>
 
         <div className="text-center text-white p-8 rounded-lg w-full md:w-2/3 lg:w-1/2 xl:w-1/3 mx-auto mt-10">
-          <h1 className="text-5xl font-extrabold mb-6">Create playlist in seconds</h1>
-          <p className="text-lg font-light">Your emotion-driven music player powered by AI.</p>
+          <h1 className="text-5xl font-extrabold mb-6">Turn Emotions into Music.</h1>
+          <p className="text-lg font-light">Your emotion-driven playlist creator powered by AI.</p>
         </div>
 
 

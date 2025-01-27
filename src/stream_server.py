@@ -80,7 +80,7 @@ def create_empty_playlist(track_uris, access_token, session_id):
     data = response.json()
     playlist_id = data['id']
     playlist_url = data['external_urls']['spotify']
-    add_tracks_to_playlist(track_uris, playlist_id, access_token, playlist_url)
+    add_tracks_to_playlist(track_uris, playlist_id, access_token,)
     data = {
         "playlist_url": playlist_url,
         "session_id": session_id
@@ -141,7 +141,7 @@ def create_user_playlist(data):
          get_spotify_user_id(access_token)
     tracks_uris = data['songs']
     session_id = data['session_id']
-    create_empty_playlist(tracks_uris, access_token)
+    create_empty_playlist(tracks_uris, access_token, session_id)
     
     
 
